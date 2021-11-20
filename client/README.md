@@ -1,6 +1,6 @@
 # Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Our demo at the link :  [POC SyncAlong-time mesurment](https://video-chat-with-pose.netlify.app).
 
 ## Available Scripts
 
