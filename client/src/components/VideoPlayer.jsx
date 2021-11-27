@@ -1,16 +1,90 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { Grid, Typography, Paper, makeStyles } from '@material-ui/core';
 import Webcam from "react-webcam";
+import Swal from 'sweetalert2';
 
 import { SocketContext } from '../Context';
-import { Web } from '@material-ui/icons';
 
 const VideoPlayer = () => {
-  const { name, callAccepted, myVideo, userVideo, callEnded, stream, call, myCanvasRef, userCanvasRef } = useContext(SocketContext);
+  const { name, callAccepted, myVideo, userVideo, callEnded, stream, call, myCanvasRef, userCanvasRef, me, posesArry, you, sendPoses, sendMyPoses, socket } = useContext(SocketContext);
   const classes = useStyles();
 
-  console.log(myVideo);
-  console.log(myCanvasRef);
+  const goodJob = (mytitle) => {
+    //say Goog Job:
+    Swal.fire({
+      title: mytitle,
+      width: 600,
+      padding: '3em',
+      background: '#fff url(/images/good-job.jpg) ',
+      backdrop: `
+                  rgba(0,0,123,0.4)
+                  url("/images/good.gif")`
+    })
+  }
+
+  useEffect(() => {
+    //lisinig for changes in the socket call of resivig data
+    var start = new Date();
+    socket.on("resivingPoses", (data) => {
+      console.log('resiving took:', (new Date() - start) / 1000, 'sec');
+      console.log('data-resiving : ', data);
+      //feedBack when send ended
+      goodJob('received poses-data from you !');
+    })
+  }, [socket]);
+
+  useEffect(() => {
+    console.log('me', me);
+    console.log('you', you);
+  }, [me, you]);
+
+
+  // useEffect(() => {
+  //   async function fetchData() {
+  //     try {
+  //       const response = await sendPoses(posesArry);
+  //     } catch (e) {
+  //       console.error(e);
+  //     }
+  //   };
+
+  //   //console.log(posesArry);
+  //   if (callAccepted && !callEnded) {
+  //     if (posesArry.length > 0 && posesArry != undefined) {
+  //       //do call for update curr poss // bouth users do it im the same time .
+  //       //fetchData();
+
+  //       if (you.length != 0) {
+  //         //when i'm the user who answer the call 
+  //         // then only me sents the req for sync - my peer will get it with socket server
+  //         console.log('me', me);
+  //         console.log('you', you);
+  //       }
+  //     }
+  //   }
+
+  // }, [posesArry, callAccepted, callEnded]);
+
+
+  const onSendMyPoses = async () => {
+    if (posesArry.length > 0 && you.length != 0) {
+      console.log('sending poses....');
+
+      let data = {
+        from: me,
+        to: you,
+        time: new Date(),
+        poses: posesArry
+      }
+      const response = await sendMyPoses(data);
+      goodJob('sent you my poses-data');
+    }
+    else {
+      Swal.fire('cant send posess- missing id of peer on conection')
+      console.log('cant send posess');
+    }
+
+  }
 
   return (
     <Grid container className={classes.gridContainer}>
@@ -18,8 +92,8 @@ const VideoPlayer = () => {
         <Paper className={classes.paper}>
           <Grid item xs={12} md={6}>
             <Typography variant="h5" gutterBottom>{name || 'Name'}</Typography>
-            <Webcam hidden playsInline muted ref={myVideo} autoPlay className={classes.video} />
-            <canvas ref={myCanvasRef} lassName={classes.video}></canvas>
+            <Webcam playsInline muted ref={myVideo} autoPlay className={classes.video} />
+            {/* <canvas ref={myCanvasRef} className={classes.video}></canvas> */}
           </Grid>
         </Paper>
       )}
@@ -28,10 +102,13 @@ const VideoPlayer = () => {
           <Grid item xs={12} md={6}>
             <Typography variant="h5" gutterBottom>{call.name || 'Name'}</Typography>
             <video playsInline ref={userVideo} autoPlay className={classes.video} />
-            <canvas ref={userCanvasRef} lassName={classes.video}></canvas>
+            {/* <canvas ref={userCanvasRef} className={classes.video}></canvas> */}
           </Grid>
         </Paper>
       )}
+
+      <button onClick={onSendMyPoses}>Send My Poses</button>
+
     </Grid>
   );
 };

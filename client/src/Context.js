@@ -7,11 +7,12 @@ import { FaceMesh } from "@mediapipe/face_mesh";
 import * as Facemesh from "@mediapipe/face_mesh";
 import * as cam from "@mediapipe/camera_utils";
 import { Pose, POSE_CONNECTIONS, LandmarkGrid, PoseConfig, landmarkContainer } from '@mediapipe/pose';
+import { data } from '@tensorflow/tfjs';
 
 const SocketContext = createContext();
 
-// const socket = io('http://localhost:5000');
-const socket = io('https://warm-wildwood-81069.herokuapp.com');
+//const socket = io('http://localhost:5000');
+const socket = io('https://video-chat-socket-api.herokuapp.com/');
 
 const ContextProvider = ({ children }) => {
   const [callAccepted, setCallAccepted] = useState(false);
@@ -20,6 +21,9 @@ const ContextProvider = ({ children }) => {
   const [name, setName] = useState('');
   const [call, setCall] = useState({});
   const [me, setMe] = useState('');
+  const [you, setYou] = useState('');
+  const [posesArry, setPosesArry] = useState([]);
+
 
   const myVideo = useRef();
   const userVideo = useRef();
@@ -30,139 +34,8 @@ const ContextProvider = ({ children }) => {
   const userCanvasRef = useRef();
 
 
-  // function onResults(results) {
-  //   //console.log(results);
-  //   const videoWidth = 550;
-  //   const videoHeight = 300;
-
-  //   // Set canvas width	
-  //   myCanvasRef.current.width = videoWidth;
-  //   myCanvasRef.current.height = videoHeight;
-  //   const canvasElement = myCanvasRef.current;
-
-  //   const canvasCtx = canvasElement.getContext("2d");
-  //   canvasCtx.save();
-  //   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  //   canvasCtx.drawImage(
-  //     results.image,
-  //     0,
-  //     0,
-  //     canvasElement.width,
-  //     canvasElement.height
-  //   );
-  //   if (results.multiFaceLandmarks) {
-  //     for (const landmarks of results.multiFaceLandmarks) {
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_TESSELATION, {
-  //         color: "#C0C0C070",
-  //         lineWidth: 1,
-  //       });
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_RIGHT_EYE, {
-  //         color: "#FF3030",
-  //       });
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_RIGHT_EYEBROW, {
-  //         color: "#FF3030",
-  //       });
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_LEFT_EYE, {
-  //         color: "#30FF30",
-  //       });
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_LEFT_EYEBROW, {
-  //         color: "#30FF30",
-  //       });
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_FACE_OVAL, {
-  //         color: "#E0E0E0",
-  //       });
-  //       connect(canvasCtx, landmarks, Facemesh.FACEMESH_LIPS, {
-  //         color: "#E0E0E0",
-  //       });
-  //     }
-  //   }
-  //   canvasCtx.restore();
-  // }
-
-  let arryof1sec = [];
-  let i = 0;
-  let timeObject;
-  let flagTime = true;
-  let flagFeatch = true;
-  function onResults(results) {
-    //set arraty of point for 1 sec when its starts
-    if (flagTime) {
-      timeObject = new Date();
-      timeObject = new Date(timeObject.getTime() + 1000 * 2); //2 sec
-      console.log('timeObject ', timeObject);
-      flagTime = false;
-    }
-    let currTime = new Date().getTime();
-
-    if (currTime < timeObject) {
-      arryof1sec.push(results);
-    }
-    else if (currTime > timeObject && flagFeatch) {
-      console.log(arryof1sec);
-      flagFeatch = false;
-
-      //Measure API response time with fetch 
-      console.time("timer1");
-      axios({
-        method: 'POST',
-        url: 'https://video-chat-socket-api.herokuapp.com/api/post',
-        data: {
-          "email": "email",
-          "pass": "pass"
-        }
-      })
-        .then((data) => {
-          console.timeEnd("timer1");
-          console.log(data);
-        })
-        .catch((error) => {
-          console.timeEnd("timer1");
-        })
-
-      console.time("timer2");
-      axios({
-        method: 'POST',
-        url: 'https://video-chat-socket-api.herokuapp.com/api/post/db',
-        data: {
-          "user": "shani"
-        }
-      })
-        .then((data) => {
-          console.timeEnd("timer2");
-          console.log(data);
-        })
-        .catch((error) => {
-          console.timeEnd("timer2");
-        })
-
-      // console.time("timer1");
-      // fetch('https://video-chat-socket-api.herokuapp.com/post')
-      //   .then((res) => {
-      //     return res.json();
-      //   })
-      //   .then((data) => {
-      //     console.timeEnd("timer1");
-      //   })
-    }
-
-    // if (i < 100) {
-    //   if (i == 0) console.log('0 ', new Date().getTime());
-    //   arryof1sec.push(results);
-    //   console.log(arryof1sec);
-    //   i++;
-    //   if (i == 90) {
-    //     console.log('9999 ', new Date().getTime());
-    //     console.log('arryof1sec ', arryof1sec);
-    //   }
-    // }
-
+  function onResultsFace(results) {
     //console.log(results);
-    // const grid = new LandmarkGrid(landmarkContainer);
-    // if (!results.poseLandmarks) {
-    //   grid.updateLandmarks([]);
-    //   return;
-    // }
-
     const videoWidth = 550;
     const videoHeight = 300;
 
@@ -171,30 +44,73 @@ const ContextProvider = ({ children }) => {
     myCanvasRef.current.height = videoHeight;
     const canvasElement = myCanvasRef.current;
 
-    const canvasCtx = canvasElement.getContext('2d');
+    const canvasCtx = canvasElement.getContext("2d");
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.drawImage(results.segmentationMask, 0, 0,
-      canvasElement.width, canvasElement.height);
-
-    // Only overwrite existing pixels.
-    canvasCtx.globalCompositeOperation = 'source-in';
-    canvasCtx.fillStyle = '#00FF00';
-    canvasCtx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-
-    // Only overwrite missing pixels.
-    canvasCtx.globalCompositeOperation = 'destination-atop';
     canvasCtx.drawImage(
-      results.image, 0, 0, canvasElement.width, canvasElement.height);
-
-    canvasCtx.globalCompositeOperation = 'source-over';
-    connect(canvasCtx, results.poseLandmarks, Pose.POSE_CONNECTIONS,
-      { color: '#00FF00', lineWidth: 4 });
-    connect(canvasCtx, results.poseLandmarks,
-      { color: '#FF0000', lineWidth: 2 });
+      results.image,
+      0,
+      0,
+      canvasElement.width,
+      canvasElement.height
+    );
+    if (results.multiFaceLandmarks) {
+      for (const landmarks of results.multiFaceLandmarks) {
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_TESSELATION, {
+          color: "#C0C0C070",
+          lineWidth: 1,
+        });
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_RIGHT_EYE, {
+          color: "#FF3030",
+        });
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_RIGHT_EYEBROW, {
+          color: "#FF3030",
+        });
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_LEFT_EYE, {
+          color: "#30FF30",
+        });
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_LEFT_EYEBROW, {
+          color: "#30FF30",
+        });
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_FACE_OVAL, {
+          color: "#E0E0E0",
+        });
+        connect(canvasCtx, landmarks, Facemesh.FACEMESH_LIPS, {
+          color: "#E0E0E0",
+        });
+      }
+    }
     canvasCtx.restore();
+  }
 
-    // grid.updateLandmarks(results.poseWorldLandmarks);
+  let arryof1sec = [];
+  let i = 0;
+  let timeObject;
+  let flagTime = true;
+  let flagFeatch = true;
+  function onResults(results) {
+    //when ther is a conection then start maser time and send data to server
+    // if (callAccepted) {
+    if (flagTime) {
+      timeObject = new Date();
+      timeObject = new Date(timeObject.getTime() + 1000 * 5); //2 sec
+      //console.log('timeObject ', timeObject);
+      flagTime = false;
+    }
+    let currTime = new Date().getTime();
+    if (currTime < timeObject && flagFeatch) {
+      arryof1sec.push(results);
+    }
+
+    else if (currTime > timeObject && flagFeatch) {
+      //  console.log(arryof1sec);
+      setPosesArry(arryof1sec);
+      //flagFeatch = false;
+
+      arryof1sec = [];
+      flagTime = true;
+      flagFeatch = true;
+    }
   }
 
   const setFaceMask = (video) => {
@@ -290,13 +206,17 @@ const ContextProvider = ({ children }) => {
     const peer = new Peer({ initiator: false, trickle: false, stream });
 
     //when i get a signel that call is answered - i get data about the single 
+    console.time("timer1-answerCall");
     peer.on('signal', (data) => {
       socket.emit('answerCall', { signal: data, to: call.from });
+      console.timeEnd("timer1-answerCall");
     });
 
     //i get the user stream and i set it in my web veiw
+    console.time("timer1-stream");
     peer.on('stream', (currentStream) => {
       //outer person stream
+      console.timeEnd("timer1-stream");
       userVideo.current.srcObject = currentStream;
     });
 
@@ -306,13 +226,21 @@ const ContextProvider = ({ children }) => {
   };
 
   const callUser = (id) => {
+    //id is to who i call
+    setYou(id);
     const peer = new Peer({ initiator: true, trickle: false, stream });
 
+    console.time("timer2-callUser");
     peer.on('signal', (data) => {
       socket.emit('callUser', { userToCall: id, signalData: data, from: me, name });
+      console.timeEnd("timer2-callUser");
     });
 
+    console.time("timer2-stream");
+    var start = new Date();
     peer.on('stream', (currentStream) => {
+      console.timeEnd("timer2-stream");
+      console.log('Request took:', (new Date() - start) / 1000, 'sec');
       userVideo.current.srcObject = currentStream;
     });
 
@@ -324,6 +252,59 @@ const ContextProvider = ({ children }) => {
 
     connectionRef.current = peer;
   };
+
+  const sendPoses = async (data) => {
+    //Measure API response time with fetch 
+    //console.log(connectionRef.current);
+    if (connectionRef.current != undefined) {
+      //console.log(callAccepted && !callEnded);
+      console.time("timer-to-with-db-2");
+      axios({
+        method: 'POST',
+        url: 'https://video-chat-socket-api.herokuapp.com/api/post/db',
+        data: {
+          "user": me,
+          "pose2sec": arryof1sec
+        }
+      })
+        .then((data) => {
+          console.timeEnd("timer-to-with-db-2");
+          //console.log(data);
+          //set object for re-loop
+          arryof1sec = [];
+          flagTime = true;
+          flagFeatch = true;
+        })
+        .catch((error) => {
+          console.timeEnd("timer-to-with-db-2");
+        })
+    }
+  }
+
+  const sendMyPoses = async (data) => {
+    //Measure API of sendin data after conection has accore
+    var start = new Date();
+    socket.emit("sendPoses", data);
+    console.log('Request took for sending my-pose:', (new Date() - start) / 1000, 'sec');
+  }
+
+  const resivingPoses = async () => {
+    socket.on("resivingPoses", (data) => {
+      console.log(data);
+    })
+  }
+
+  const getUsersSync = async () => {
+    //fatch bouth curr poses of usesrs from db
+
+    const peer = new Peer({ initiator: true, trickle: false, stream });
+    //set it in socket to other user
+    console.time("timer2-get-other-posess");
+    peer.on('poses', (poses) => {
+      console.timeEnd("timer2-get-other-posess");
+      console.log(poses);
+    });
+  }
 
   const leaveCall = () => {
     setCallEnded(true);
@@ -348,7 +329,12 @@ const ContextProvider = ({ children }) => {
       leaveCall,
       answerCall,
       myCanvasRef,
-      userCanvasRef
+      userCanvasRef,
+      posesArry,
+      you,
+      sendPoses,
+      sendMyPoses,
+      socket
     }}
     >
       {children}
