@@ -21,12 +21,13 @@ const VideoPlayer = () => {
                   url("/images/good.gif")`
     })
   }
-
   useEffect(() => {
-    //lisinig for changes in the socket call of resivig data
-    var start = new Date();
     socket.on("resivingPoses", (data) => {
-      console.log('resiving took:', (new Date() - start) / 1000, 'sec');
+      var start = data.time;
+      console.log("strat: ", start, " sec:", new Date(start).getSeconds());
+      var end = new Date().toString();
+      console.log("end: ", end, " sec:", new Date(end).getSeconds());
+      console.log('resiving took:', (new Date(end).getSeconds()- new Date(start).getSeconds()), 'sec');
       console.log('data-resiving : ', data);
       //feedBack when send ended
       goodJob('received poses-data from you !');
@@ -67,13 +68,15 @@ const VideoPlayer = () => {
 
 
   const onSendMyPoses = async () => {
+    var start = new Date().toString();
+    console.log("start after click: ",start);
     if (posesArry.length > 0 && you.length != 0) {
       console.log('sending poses....');
 
       let data = {
         from: me,
         to: you,
-        time: new Date(),
+        time: start,
         poses: posesArry
       }
       const response = await sendMyPoses(data);
