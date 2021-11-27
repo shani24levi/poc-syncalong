@@ -6,14 +6,14 @@ dotenv.config();
 
 const server = http.createServer(app)
 const cors = require("cors");
-
+// Server static assets for chat conection
 const io = require("socket.io")(server, {
 	cors: {
 		origin: "*",
 		methods: ["GET", "POST"]
 	}
 })
-// Server static assets 
+// Server static assets for regular req
 app.all('*', function (req, res, next) {
 	if (!req.get('Origin')) return next();
 	res.set('Access-Control-Allow-Origin', '*');
@@ -35,8 +35,9 @@ app.get('/', (req, res) => {
 	res.send('Running');
 });
 
-//Routes Chat connection
 io.on("connection", (socket) => {
+	let chat = mongoCon.collection('chats');
+	//inisilize user id of conection
 	socket.emit("me", socket.id)
 
 	socket.on("disconnect", () => {
@@ -49,6 +50,14 @@ io.on("connection", (socket) => {
 
 	socket.on("answerCall", (data) => {
 		io.to(data.to).emit("callAccepted", data.signal)
+	})
+
+	socket.on("sendPoses", (data) => {
+		console.log('data', data);
+		//Push data  to db 
+
+		//send to other side the data 
+		io.to(data.to).emit("resivingPoses", data)
 	})
 })
 
